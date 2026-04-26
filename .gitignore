@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prisma generated (Vercel'de postinstall ile üretilir)
+/src/generated/
+
+# claude memory
+/.claude/
+
+# har dosyaları
+*.har
+
+# playwright test sonuçları
+/playwright-report/
+/test-results/

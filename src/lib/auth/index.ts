@@ -4,7 +4,7 @@ import Credentials from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/db'
 import { compare } from 'bcryptjs'
 import { authConfig } from './config'
-import type { UserRole } from '@/generated/prisma/enums'
+import type { UserRole } from '@/types'
 
 declare module 'next-auth' {
   interface Session {

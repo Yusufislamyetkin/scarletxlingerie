@@ -1,5 +1,5 @@
 import { prisma } from './index'
-import type { OrderStatus } from '@/generated/prisma/enums'
+import type { OrderStatus } from '@/generated/prisma/client'
 
 export async function getOrderByNumber(orderNumber: string) {
   return prisma.order.findUnique({

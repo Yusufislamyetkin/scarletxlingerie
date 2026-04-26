@@ -1,5 +1,5 @@
 import { prisma } from './index'
-import type { CustomerTier } from '@/generated/prisma/enums'
+import type { CustomerTier } from '@/generated/prisma/client'
 
 export async function getOrCreateCustomer(userId: string, data: {
   firstName: string

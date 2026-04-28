@@ -2,10 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Jost } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
-import MobileNav from '@/components/layout/MobileNav'
-import CartDrawer from '@/components/cart/CartDrawer'
+import SiteShell from '@/components/layout/SiteShell'
 
 const GTM_ID        = process.env.NEXT_PUBLIC_GTM_ID
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
@@ -90,11 +87,7 @@ export default function RootLayout({
             />
           </noscript>
         )}
-        <Header />
-        <main className="flex-1 pb-16 lg:pb-0">{children}</main>
-        <Footer />
-        <MobileNav />
-        <CartDrawer />
+        <SiteShell>{children}</SiteShell>
       </body>
     </html>
   )

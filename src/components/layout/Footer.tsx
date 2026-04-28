@@ -37,7 +37,7 @@ export default function Footer() {
               <h3 className="font-serif text-2xl lg:text-3xl text-ivory mb-2">
                 Koleksiyona İlk Sen Ulaş
               </h3>
-              <p className="text-sm text-pebble font-light tracking-wide">
+              <p className="text-sm text-ivory/60 font-light tracking-wide">
                 Yeni gelenler, özel teklifler ve stil ilhamı için abone ol.
               </p>
             </div>
@@ -68,16 +68,16 @@ export default function Footer() {
                 Scarlet<span className="text-gold">X</span>
               </span>
             </Link>
-            <p className="text-xs text-pebble font-light leading-relaxed tracking-wide mb-6">
+            <p className="text-xs text-ivory/60 font-light leading-relaxed tracking-wide mb-6">
               Sessiz lüksün adresi. Her dokunuşta kaliteyi hissettiren premium iç giyim.
             </p>
             <div className="flex gap-3">
               <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"
-                className="p-2 border border-graphite text-pebble hover:text-gold hover:border-gold transition-colors" aria-label="Instagram">
+                className="p-2 border border-graphite text-ivory/40 hover:text-gold hover:border-gold transition-colors" aria-label="Instagram">
                 <Share2 size={16} strokeWidth={1.5} />
               </a>
               <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
-                className="p-2 border border-graphite text-pebble hover:text-gold hover:border-gold transition-colors" aria-label="Facebook">
+                className="p-2 border border-graphite text-ivory/40 hover:text-gold hover:border-gold transition-colors" aria-label="Facebook">
                 <Globe size={16} strokeWidth={1.5} />
               </a>
             </div>
@@ -85,11 +85,11 @@ export default function Footer() {
 
           {/* Shop */}
           <div>
-            <h4 className="text-xs font-sans font-medium tracking-widest uppercase text-pebble mb-5">Alışveriş</h4>
+            <h4 className="text-xs font-sans font-medium tracking-widest uppercase text-ivory/50 mb-5">Alışveriş</h4>
             <ul className="space-y-3">
               {footerLinks.shop.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm font-light text-stone hover:text-ivory transition-colors">
+                  <Link href={link.href} className="text-sm font-light text-ivory/65 hover:text-ivory transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -99,11 +99,11 @@ export default function Footer() {
 
           {/* Help */}
           <div>
-            <h4 className="text-xs font-sans font-medium tracking-widest uppercase text-pebble mb-5">Yardım</h4>
+            <h4 className="text-xs font-sans font-medium tracking-widest uppercase text-ivory/50 mb-5">Yardım</h4>
             <ul className="space-y-3">
               {footerLinks.help.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm font-light text-stone hover:text-ivory transition-colors">
+                  <Link href={link.href} className="text-sm font-light text-ivory/65 hover:text-ivory transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -113,11 +113,11 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h4 className="text-xs font-sans font-medium tracking-widest uppercase text-pebble mb-5">Kurumsal</h4>
+            <h4 className="text-xs font-sans font-medium tracking-widest uppercase text-ivory/50 mb-5">Kurumsal</h4>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm font-light text-stone hover:text-ivory transition-colors">
+                  <Link href={link.href} className="text-sm font-light text-ivory/65 hover:text-ivory transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -131,12 +131,12 @@ export default function Footer() {
       <div className="border-t border-graphite">
         <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-stone font-light tracking-wide">
+            <p className="text-xs text-ivory/50 font-light tracking-wide">
               &copy; {new Date().getFullYear()} ScarletX Lingerie. Tüm hakları saklıdır.
             </p>
             <div className="flex items-center gap-3">
               {['Visa', 'Mastercard', 'Troy'].map((method) => (
-                <span key={method} className="px-2 py-1 border border-graphite text-[10px] font-sans text-pebble tracking-wide">
+                <span key={method} className="px-2 py-1 border border-graphite text-[10px] font-sans text-ivory/40 tracking-wide">
                   {method}
                 </span>
               ))}

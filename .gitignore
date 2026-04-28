@@ -52,3 +52,5 @@ next-env.d.ts
 # playwright test sonuçları
 /playwright-report/
 /test-results/
+
+.vercel

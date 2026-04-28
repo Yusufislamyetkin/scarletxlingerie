@@ -1,5 +1,4 @@
 import NextAuth from 'next-auth'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import Credentials from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/db'
 import { compare } from 'bcryptjs'
@@ -21,9 +20,10 @@ declare module 'next-auth' {
   }
 }
 
+// PrismaAdapter kaldırıldı — session strategy 'jwt', adapter credentials auth ile çakışıyor.
+// Kullanıcı doğrulaması authorize() içinde doğrudan prisma ile yapılıyor.
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
-  adapter: PrismaAdapter(prisma),
   providers: [
     Credentials({
       name: 'credentials',

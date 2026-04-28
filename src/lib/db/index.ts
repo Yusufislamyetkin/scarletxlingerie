@@ -17,8 +17,9 @@ function createClient() {
     return new PrismaClient({ accelerateUrl: url })
   }
 
-  // ssl: rejectUnauthorized: false — Supabase self-signed cert zincirini kabul et
-  const pool = new Pool({ connectionString: url, ssl: { rejectUnauthorized: false } })
+  // sslmode'u URL'den çıkar; ssl nesnesini açıkça ver (pg v8 sslmode=require'ı artık verify-full sayıyor)
+  const cleanUrl = url.replace(/([?&])sslmode=[^&]*/g, '$1').replace(/[?&]$/, '')
+  const pool = new Pool({ connectionString: cleanUrl, ssl: { rejectUnauthorized: false } })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }

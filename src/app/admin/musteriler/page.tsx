@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { Users } from 'lucide-react'
 import { formatPrice, formatDate } from '@/lib/utils/format'
 import type { CustomerTier } from '@/types'

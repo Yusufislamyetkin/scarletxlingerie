@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import {
   TrendingUp, ShoppingCart, Package, AlertTriangle,
   ArrowUpRight, ArrowDownRight, Clock,

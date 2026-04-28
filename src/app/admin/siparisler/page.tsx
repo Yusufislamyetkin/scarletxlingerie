@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from 'react'
 import { Eye, ChevronDown } from 'lucide-react'
 import { formatPrice, formatDate } from '@/lib/utils/format'

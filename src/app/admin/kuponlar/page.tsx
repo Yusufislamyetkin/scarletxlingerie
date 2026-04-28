@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from 'react'
 import { Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
 import { formatDate } from '@/lib/utils/format'

@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from 'react'
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Bell, Image as ImageIcon, X as XIcon } from 'lucide-react'
 

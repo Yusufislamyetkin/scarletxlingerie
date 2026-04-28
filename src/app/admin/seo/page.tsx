@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from 'react'
 import { Save, Globe } from 'lucide-react'
 import { mockProducts } from '@/lib/mock-data'

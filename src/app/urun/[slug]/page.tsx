@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -7,19 +9,15 @@ import AddToCart from '@/components/product/AddToCart'
 import FeaturedProducts from '@/components/home/FeaturedProducts'
 import ViewItemTracker from '@/components/analytics/ViewItemTracker'
 import { ProductJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd'
-import { mockProducts } from '@/lib/mock-data'
+import { getProductBySlug, getProducts } from '@/lib/db/products'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://scarletxlingerie.com'
-
-export async function generateStaticParams() {
-  return mockProducts.map((p) => ({ slug: p.slug }))
-}
 
 interface Props { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const product = mockProducts.find((p) => p.slug === slug)
+  const product = await getProductBySlug(slug)
   if (!product) return {}
   const image = product.variants[0]?.images[0]
   return {
@@ -38,10 +36,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params
-  const product = mockProducts.find((p) => p.slug === slug)
+  const product = await getProductBySlug(slug)
   if (!product) notFound()
 
-  const related = mockProducts.filter((p) => p.id !== product.id && p.category === product.category).slice(0, 4)
+  const [related] = await Promise.all([
+    getProducts({ categorySlug: product.category.toLowerCase(), take: 4 }),
+  ])
+  const relatedFiltered = related.filter((p) => p.id !== product.id).slice(0, 4)
   const allImages = [...new Set(product.variants.flatMap((v) => v.images))]
 
   return (
@@ -118,9 +119,9 @@ export default async function ProductPage({ params }: Props) {
       </div>
 
       {/* İlgili ürünler */}
-      {related.length > 0 && (
+      {relatedFiltered.length > 0 && (
         <FeaturedProducts
-          products={related}
+          products={relatedFiltered}
           title="Bunları da Beğenebilirsiniz"
           eyebrow="İlgili Ürünler"
           viewAllHref="/koleksiyonlar"

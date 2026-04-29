@@ -1,19 +1,23 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import SectionTitle from '@/components/ui/SectionTitle'
 import { BreadcrumbJsonLd } from '@/components/seo/JsonLd'
-import { mockCollections } from '@/lib/mock-data'
+import { getCollections } from '@/lib/db/products'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://scarletxlingerie.com'
 
 export const metadata: Metadata = {
   title:       'Koleksiyonlar',
-  description: 'ScarletX Lingerie koleksiyonlarını keşfedin. Velvet Noir, Ivory Reverie, Scarlet Romance ve daha fazlası.',
+  description: 'ScarletX Lingerie koleksiyonlarını keşfedin.',
   alternates:  { canonical: `${BASE_URL}/koleksiyonlar` },
 }
 
-export default function CollectionsPage() {
+export default async function CollectionsPage() {
+  const collections = await getCollections()
+
   return (
     <>
     <BreadcrumbJsonLd items={[
@@ -28,7 +32,7 @@ export default function CollectionsPage() {
         className="mb-14"
       />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {mockCollections.map((col) => (
+        {collections.map((col) => (
           <Link key={col.id} href={`/koleksiyonlar/${col.slug}`} className="group block relative overflow-hidden aspect-[2/3] bg-cream">
             <Image src={col.image} alt={col.name} fill sizes="(max-width:768px) 100vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-charcoal/60 to-transparent" />

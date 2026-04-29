@@ -1,31 +1,29 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import ProductGrid from '@/components/product/ProductGrid'
 import { BreadcrumbJsonLd } from '@/components/seo/JsonLd'
-import { mockCollections, mockProducts } from '@/lib/mock-data'
+import { getCollectionBySlug, getProducts } from '@/lib/db/products'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://scarletxlingerie.com'
-
-export async function generateStaticParams() {
-  return mockCollections.map((c) => ({ slug: c.slug }))
-}
 
 interface Props { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const col = mockCollections.find((c) => c.slug === slug)
+  const col = await getCollectionBySlug(slug)
   if (!col) return {}
   return {
-    title:       col.name,
-    description: col.description,
+    title:       col.seoTitle ?? col.name,
+    description: col.seoDescription ?? col.description,
     alternates:  { canonical: `${BASE_URL}/koleksiyonlar/${slug}` },
     openGraph: {
       type:        'website',
       url:         `${BASE_URL}/koleksiyonlar/${slug}`,
-      title:       col.name,
-      description: col.description,
+      title:       col.seoTitle ?? col.name,
+      description: col.seoDescription ?? col.description,
       images:      [{ url: col.image, alt: col.name }],
     },
   }
@@ -33,10 +31,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CollectionPage({ params }: Props) {
   const { slug } = await params
-  const collection = mockCollections.find((c) => c.slug === slug)
+  const [collection, products] = await Promise.all([
+    getCollectionBySlug(slug),
+    getProducts({ collectionSlug: slug, take: 50 }),
+  ])
   if (!collection) notFound()
-
-  const products = mockProducts.filter((p) => p.collectionId === collection.id)
 
   return (
     <>

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from 'next'
 import HeroSection from '@/components/home/HeroSection'
 import CollectionsGrid from '@/components/home/CollectionsGrid'
@@ -5,7 +7,7 @@ import FeaturedProducts from '@/components/home/FeaturedProducts'
 import UspBar from '@/components/home/UspBar'
 import BrandStory from '@/components/home/BrandStory'
 import { OrganizationJsonLd } from '@/components/seo/JsonLd'
-import { mockCollections, mockProducts } from '@/lib/mock-data'
+import { getFeaturedProducts, getNewArrivals, getCollections } from '@/lib/db/products'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://scarletxlingerie.com'
 
@@ -22,24 +24,29 @@ export const metadata: Metadata = {
   },
 }
 
-export default function HomePage() {
-  const featured    = mockProducts.filter((p) => p.isFeatured)
-  const newArrivals = mockProducts.filter((p) => p.isNew)
+export default async function HomePage() {
+  const [featured, newArrivals, collections] = await Promise.all([
+    getFeaturedProducts(8),
+    getNewArrivals(8),
+    getCollections(),
+  ])
 
   return (
     <>
       <OrganizationJsonLd />
       <HeroSection />
       <UspBar />
-      <CollectionsGrid collections={mockCollections} />
-      <FeaturedProducts products={featured} />
+      <CollectionsGrid collections={collections} />
+      {featured.length > 0 && <FeaturedProducts products={featured} />}
       <BrandStory />
-      <FeaturedProducts
-        products={newArrivals}
-        title="Yeni Gelenler"
-        eyebrow="Taze Keşifler"
-        viewAllHref="/yeni-gelenler"
-      />
+      {newArrivals.length > 0 && (
+        <FeaturedProducts
+          products={newArrivals}
+          title="Yeni Gelenler"
+          eyebrow="Taze Keşifler"
+          viewAllHref="/koleksiyonlar"
+        />
+      )}
     </>
   )
 }

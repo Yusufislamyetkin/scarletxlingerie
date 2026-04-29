@@ -9,11 +9,10 @@ import SearchOverlay from './SearchOverlay'
 
 const navLinks = [
   { label: 'Koleksiyonlar', href: '/koleksiyonlar' },
-  { label: 'Yeni Gelenler', href: '/yeni-gelenler' },
-  { label: 'Sütyen', href: '/kategori/sutyen' },
-  { label: 'Takım', href: '/kategori/takim' },
-  { label: 'Gecelik', href: '/kategori/gecelik' },
-  { label: 'Sale', href: '/sale' },
+  { label: 'Külot',         href: '/kategori/kilot' },
+  { label: 'Tanga',         href: '/kategori/tanga' },
+  { label: 'Takım',         href: '/kategori/takim' },
+  { label: 'Korse',         href: '/kategori/korse' },
 ]
 
 export default function Header() {

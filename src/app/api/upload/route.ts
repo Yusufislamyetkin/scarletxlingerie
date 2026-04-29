@@ -1,24 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { put } from '@vercel/blob'
 import { auth } from '@/lib/auth'
-import { uploadProductImage } from '@/lib/cloudinary'
 import { checkRateLimit } from '@/lib/utils/rate-limit'
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
 
 export async function POST(req: NextRequest) {
   try {
-    // Cloudinary yapılandırma kontrolü
-    if (
-      !process.env.CLOUDINARY_API_KEY ||
-      !process.env.CLOUDINARY_API_SECRET ||
-      !process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-    ) {
-      return NextResponse.json(
-        { error: 'Görsel yükleme henüz yapılandırılmadı. Cloudinary bilgilerini Vercel ortam değişkenlerine ekleyin.' },
-        { status: 503 }
-      )
-    }
-
     const session = await auth()
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
@@ -33,8 +21,6 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData()
-
-    // Çoklu dosya desteği: 'files' (array) veya tekil 'file'
     const rawFiles = formData.getAll('files') as File[]
     const files    = rawFiles.length > 0 ? rawFiles : [formData.get('file') as File].filter(Boolean)
 
@@ -42,7 +28,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Dosya bulunamadı.' }, { status: 400 })
     }
 
-    // Tüm dosyaları paralel yükle
     const results = await Promise.all(
       files.map(async (file) => {
         if (file.size > MAX_SIZE_BYTES) {
@@ -51,13 +36,19 @@ export async function POST(req: NextRequest) {
         if (!file.type.startsWith('image/')) {
           throw new Error(`"${file.name}" geçerli bir görsel dosyası değil.`)
         }
-        const bytes  = await file.arrayBuffer()
-        const base64 = `data:${file.type};base64,${Buffer.from(bytes).toString('base64')}`
-        return uploadProductImage(base64)
+
+        const ext      = file.name.split('.').pop() ?? 'jpg'
+        const filename = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+        const blob = await put(filename, file, {
+          access: 'public',
+          contentType: file.type,
+        })
+
+        return { url: blob.url, publicId: blob.pathname }
       })
     )
 
-    // Tek dosya → { url, publicId } | Çoklu dosya → { results: [...] }
     return NextResponse.json(files.length === 1 ? results[0] : { results })
 
   } catch (err: unknown) {

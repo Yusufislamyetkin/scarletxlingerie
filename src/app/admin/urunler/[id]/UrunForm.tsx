@@ -66,34 +66,42 @@ export default function UrunForm({ id, existing, collections }: Props) {
     const list = Array.from(files).filter(f => f.type.startsWith('image/'))
     if (!list.length) return
 
-    const oversized = list.find(f => f.size > 5 * 1024 * 1024)
-    if (oversized) {
-      setUploadError(`"${oversized.name}" 5 MB sınırını aşıyor.`)
-      return
-    }
-
     setUploading(true)
     setUploadError(null)
 
-    const results: string[] = []
-    for (const file of list) {
+    try {
+      // Tüm dosyaları tek istekte gönder (çoklu yükleme)
       const fd = new FormData()
-      fd.append('file', file)
-      try {
-        const res  = await fetch('/api/upload', { method: 'POST', body: fd })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error ?? 'Yükleme başarısız')
-        results.push(data.url)
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Bilinmeyen hata'
-        setUploadError(msg)
-        setUploading(false)
-        return
-      }
-    }
+      for (const file of list) fd.append('files', file)
 
-    setImages(prev => [...prev, ...results])
-    setUploading(false)
+      const res  = await fetch('/api/upload', { method: 'POST', body: fd })
+      const text = await res.text()
+
+      // Boş yanıt kontrolü
+      if (!text) throw new Error('Sunucu boş yanıt döndürdü. Lütfen tekrar deneyin.')
+
+      let data: { url?: string; results?: { url: string }[]; error?: string }
+      try {
+        data = JSON.parse(text)
+      } catch {
+        throw new Error('Sunucu geçersiz yanıt döndürdü.')
+      }
+
+      if (!res.ok) throw new Error(data.error ?? `Sunucu hatası (${res.status})`)
+
+      // Tek dosya → { url } | Çoklu → { results: [{ url }] }
+      const urls = data.results
+        ? data.results.map(r => r.url)
+        : data.url
+          ? [data.url]
+          : []
+
+      setImages(prev => [...prev, ...urls])
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Görsel yüklenemedi.')
+    } finally {
+      setUploading(false)
+    }
   }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

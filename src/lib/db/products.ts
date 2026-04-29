@@ -1,5 +1,8 @@
+import { unstable_cache } from 'next/cache'
 import { prisma } from './index'
 import type { Product, ProductVariant, Collection } from '@/types'
+
+const CACHE_TTL = 300 // 5 dakika
 
 // ─── Raw Prisma types ──────────────────────────────────────────────────────────
 
@@ -54,7 +57,7 @@ const PRODUCT_INCLUDE = {
   collection: { select: { name: true, slug: true } },
 } as const
 
-export async function getProducts(opts?: {
+async function _getProducts(opts?: {
   categorySlug?: string
   collectionSlug?: string
   isFeatured?: boolean
@@ -78,12 +81,27 @@ export async function getProducts(opts?: {
   return rows.map(toProduct)
 }
 
+export async function getProducts(opts?: Parameters<typeof _getProducts>[0]) {
+  const key = JSON.stringify(opts ?? {})
+  return unstable_cache(
+    () => _getProducts(opts),
+    ['products', key],
+    { revalidate: CACHE_TTL }
+  )()
+}
+
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const p = await prisma.product.findUnique({
-    where:   { slug, isActive: true },
-    include: PRODUCT_INCLUDE,
-  })
-  return p ? toProduct(p) : null
+  return unstable_cache(
+    async () => {
+      const p = await prisma.product.findUnique({
+        where:   { slug, isActive: true },
+        include: PRODUCT_INCLUDE,
+      })
+      return p ? toProduct(p) : null
+    },
+    ['product', slug],
+    { revalidate: CACHE_TTL }
+  )()
 }
 
 export async function getFeaturedProducts(take = 8) {
@@ -95,31 +113,43 @@ export async function getNewArrivals(take = 8) {
 }
 
 export async function getCollections(): Promise<Collection[]> {
-  const cols = await prisma.collection.findMany({
-    where:   { isActive: true },
-    orderBy: { order: 'asc' },
-  })
-  return cols.map((c) => ({
-    id:          c.id,
-    slug:        c.slug,
-    name:        c.name,
-    description: c.description ?? undefined,
-    image:       c.image,
-    seoTitle:    c.seoTitle ?? undefined,
-    seoDescription: c.seoDescription ?? undefined,
-  }))
+  return unstable_cache(
+    async () => {
+      const cols = await prisma.collection.findMany({
+        where:   { isActive: true },
+        orderBy: { order: 'asc' },
+      })
+      return cols.map((c) => ({
+        id:             c.id,
+        slug:           c.slug,
+        name:           c.name,
+        description:    c.description ?? undefined,
+        image:          c.image,
+        seoTitle:       c.seoTitle ?? undefined,
+        seoDescription: c.seoDescription ?? undefined,
+      }))
+    },
+    ['collections'],
+    { revalidate: CACHE_TTL }
+  )()
 }
 
 export async function getCollectionBySlug(slug: string): Promise<Collection | null> {
-  const c = await prisma.collection.findUnique({ where: { slug, isActive: true } })
-  if (!c) return null
-  return {
-    id:             c.id,
-    slug:           c.slug,
-    name:           c.name,
-    description:    c.description ?? undefined,
-    image:          c.image,
-    seoTitle:       c.seoTitle ?? undefined,
-    seoDescription: c.seoDescription ?? undefined,
-  }
+  return unstable_cache(
+    async () => {
+      const c = await prisma.collection.findUnique({ where: { slug, isActive: true } })
+      if (!c) return null
+      return {
+        id:             c.id,
+        slug:           c.slug,
+        name:           c.name,
+        description:    c.description ?? undefined,
+        image:          c.image,
+        seoTitle:       c.seoTitle ?? undefined,
+        seoDescription: c.seoDescription ?? undefined,
+      }
+    },
+    ['collection', slug],
+    { revalidate: CACHE_TTL }
+  )()
 }

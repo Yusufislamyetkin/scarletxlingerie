@@ -1,15 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2, Save, Upload } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowLeft, Plus, Trash2, Save, Upload, X, Loader2, ImageOff } from 'lucide-react'
 import { formatPrice } from '@/lib/utils/format'
 import type { Product, ProductVariant } from '@/types'
 
-function FormField({
-  label, children, hint, required,
-}: {
+function FormField({ label, children, hint, required }: {
   label: string; children: React.ReactNode; hint?: string; required?: boolean
 }) {
   return (
@@ -32,8 +30,7 @@ interface Props {
 }
 
 export default function UrunForm({ id, existing, collections }: Props) {
-  const router  = useRouter()
-  const isNew   = id === 'yeni'
+  const isNew = id === 'yeni'
 
   const [name, setName]           = useState(existing?.name ?? '')
   const [description, setDesc]    = useState(existing?.description ?? '')
@@ -50,8 +47,70 @@ export default function UrunForm({ id, existing, collections }: Props) {
       ? existing.variants
       : [{ size: '', color: '', colorHex: '#1A1A1A', price: 0, compareAtPrice: undefined, stock: 0, images: [] }]
   )
+
+  // Görsel state — tüm varyantlara ait benzersiz görseller tek havuzda yönetilir
+  const allExistingImages = [...new Set(existing?.variants.flatMap(v => v.images) ?? [])]
+  const [images, setImages]         = useState<string[]>(allExistingImages)
+  const [uploading, setUploading]   = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [dragOver, setDragOver]     = useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const [saving, setSaving] = useState(false)
   const [saved, setSaved]   = useState(false)
+
+  // ─── Görsel yükleme ───────────────────────────────────────────────────────
+
+  const uploadFiles = useCallback(async (files: FileList | File[]) => {
+    const list = Array.from(files).filter(f => f.type.startsWith('image/'))
+    if (!list.length) return
+
+    const oversized = list.find(f => f.size > 5 * 1024 * 1024)
+    if (oversized) {
+      setUploadError(`"${oversized.name}" 5 MB sınırını aşıyor.`)
+      return
+    }
+
+    setUploading(true)
+    setUploadError(null)
+
+    const results: string[] = []
+    for (const file of list) {
+      const fd = new FormData()
+      fd.append('file', file)
+      try {
+        const res  = await fetch('/api/upload', { method: 'POST', body: fd })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Yükleme başarısız')
+        results.push(data.url)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Bilinmeyen hata'
+        setUploadError(msg)
+        setUploading(false)
+        return
+      }
+    }
+
+    setImages(prev => [...prev, ...results])
+    setUploading(false)
+  }, [])
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) uploadFiles(e.target.files)
+    e.target.value = ''
+  }
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    if (e.dataTransfer.files?.length) uploadFiles(e.dataTransfer.files)
+  }, [uploadFiles])
+
+  const removeImage = (url: string) =>
+    setImages(prev => prev.filter(u => u !== url))
+
+  // ─── Varyant işlemleri ────────────────────────────────────────────────────
 
   const addVariant = () =>
     setVariants(vs => [...vs, { size: '', color: '', colorHex: '#1A1A1A', price: 0, stock: 0, images: [] }])
@@ -62,10 +121,12 @@ export default function UrunForm({ id, existing, collections }: Props) {
   const updateVariant = (i: number, field: keyof ProductVariant, value: string | number) =>
     setVariants(vs => vs.map((v, idx) => idx === i ? { ...v, [field]: value } : v))
 
+  // ─── Kaydet ───────────────────────────────────────────────────────────────
+
   const handleSave = async () => {
     setSaving(true)
-    // TODO: wire up to /api/admin/products server action
-    await new Promise(r => setTimeout(r, 600))
+    // TODO: server action ile DB'ye kaydet
+    await new Promise(r => setTimeout(r, 400))
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -73,6 +134,16 @@ export default function UrunForm({ id, existing, collections }: Props) {
 
   return (
     <div className="max-w-4xl space-y-6">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       {/* Başlık */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -138,6 +209,86 @@ export default function UrunForm({ id, existing, collections }: Props) {
                 </select>
               </FormField>
             </div>
+          </section>
+
+          {/* Görseller */}
+          <section className="bg-warm-white border border-border p-6 space-y-4">
+            <h2 className="font-sans text-xs font-medium tracking-widest uppercase text-stone pb-3 border-b border-border">
+              Görseller
+            </h2>
+
+            {/* Drag & drop zone */}
+            <div
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-sm p-8 text-center cursor-pointer transition-colors select-none ${
+                dragOver
+                  ? 'border-charcoal bg-cream'
+                  : 'border-border hover:border-charcoal/50 hover:bg-cream/50'
+              }`}
+            >
+              {uploading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 size={24} className="animate-spin text-charcoal" />
+                  <p className="text-sm font-sans font-light text-stone">Yükleniyor…</p>
+                </div>
+              ) : (
+                <>
+                  <Upload size={22} strokeWidth={1} className="text-pebble mx-auto mb-2" />
+                  <p className="text-sm font-sans font-light text-stone">
+                    Tıklayın veya görseli buraya sürükleyin
+                  </p>
+                  <p className="text-xs font-light text-pebble mt-1">PNG, JPG, WebP — Maks. 5 MB</p>
+                </>
+              )}
+            </div>
+
+            {/* Hata mesajı */}
+            {uploadError && (
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-scarlet/5 border border-scarlet/20">
+                <ImageOff size={14} className="text-scarlet mt-0.5 flex-shrink-0" />
+                <p className="text-xs font-light text-scarlet">{uploadError}</p>
+              </div>
+            )}
+
+            {/* Yüklenen görseller */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-4 gap-3">
+                {images.map((url, i) => (
+                  <div key={url} className="relative group aspect-square bg-cream overflow-hidden">
+                    <Image
+                      src={url}
+                      alt={`Görsel ${i + 1}`}
+                      fill
+                      sizes="120px"
+                      className="object-cover"
+                    />
+                    {i === 0 && (
+                      <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-sans font-medium tracking-widest uppercase bg-charcoal/70 text-ivory py-0.5">
+                        Ana Görsel
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeImage(url)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-scarlet text-ivory rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))}
+                {/* Ekle butonu */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square border-2 border-dashed border-border flex items-center justify-center text-pebble hover:border-charcoal hover:text-charcoal transition-colors"
+                >
+                  <Plus size={18} strokeWidth={1.5} />
+                </button>
+              </div>
+            )}
           </section>
 
           {/* Varyantlar */}
@@ -211,21 +362,6 @@ export default function UrunForm({ id, existing, collections }: Props) {
             ))}
           </section>
 
-          {/* Görseller */}
-          <section className="bg-warm-white border border-border p-6 space-y-4">
-            <h2 className="font-sans text-xs font-medium tracking-widest uppercase text-stone pb-3 border-b border-border">
-              Görseller
-            </h2>
-            <div className="border-2 border-dashed border-border rounded-sm p-10 text-center space-y-2">
-              <Upload size={24} strokeWidth={1} className="text-pebble mx-auto" />
-              <p className="text-sm font-sans font-light text-stone">Görsel yüklemek için tıklayın veya sürükleyin</p>
-              <p className="text-xs font-light text-pebble">PNG, JPG, WebP — Maks. 5 MB</p>
-              <button type="button" className="btn-outline text-[11px] mt-2">
-                Görsel Seç
-              </button>
-            </div>
-          </section>
-
           {/* Lüks Detaylar */}
           <section className="bg-warm-white border border-border p-6 space-y-4">
             <h2 className="font-sans text-xs font-medium tracking-widest uppercase text-stone pb-3 border-b border-border">
@@ -267,36 +403,24 @@ export default function UrunForm({ id, existing, collections }: Props) {
 
         {/* Sağ Panel */}
         <div className="space-y-5">
-
-          {/* Yayın Durumu */}
           <div className="bg-warm-white border border-border p-5 space-y-4">
             <h2 className="font-sans text-xs font-medium tracking-widest uppercase text-stone pb-3 border-b border-border">
               Yayın Durumu
             </h2>
             <div className="space-y-3">
               <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isNew_}
-                  onChange={e => setIsNew(e.target.checked)}
-                  className="w-4 h-4 accent-charcoal"
-                />
+                <input type="checkbox" checked={isNew_} onChange={e => setIsNew(e.target.checked)} className="w-4 h-4 accent-charcoal" />
                 <span className="text-sm font-sans font-light text-charcoal">Yeni Ürün Etiketi</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isFeatured}
-                  onChange={e => setFeatured(e.target.checked)}
-                  className="w-4 h-4 accent-charcoal"
-                />
+                <input type="checkbox" checked={isFeatured} onChange={e => setFeatured(e.target.checked)} className="w-4 h-4 accent-charcoal" />
                 <span className="text-sm font-sans font-light text-charcoal">Öne Çıkan Ürün</span>
               </label>
             </div>
             <button
               onClick={handleSave}
               disabled={saving}
-              className={`btn-primary w-full text-xs ${saved ? 'bg-green-700 border-green-700' : ''}`}
+              className={`btn-primary w-full text-xs flex items-center justify-center gap-2 ${saved ? 'bg-green-700 border-green-700' : ''}`}
             >
               <Save size={13} />
               {saving ? 'Kaydediliyor...' : saved ? 'Kaydedildi!' : 'Yayınla'}
@@ -330,6 +454,10 @@ export default function UrunForm({ id, existing, collections }: Props) {
                       ? formatPrice(Math.min(...existing.variants.map(v => v.price)))
                       : '—'}
                   </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-light text-stone">Görsel</span>
+                  <span className="font-medium text-charcoal">{images.length}</span>
                 </div>
               </div>
             </div>

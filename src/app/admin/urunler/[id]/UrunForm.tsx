@@ -3,9 +3,11 @@
 import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, Plus, Trash2, Save, Upload, X, Loader2, ImageOff } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Plus, Trash2, Save, Upload, X, Loader2, ImageOff, AlertCircle } from 'lucide-react'
 import { formatPrice } from '@/lib/utils/format'
 import type { Product, ProductVariant } from '@/types'
+import { saveProduct } from './actions'
 
 function FormField({ label, children, hint, required }: {
   label: string; children: React.ReactNode; hint?: string; required?: boolean
@@ -31,10 +33,12 @@ interface Props {
 
 export default function UrunForm({ id, existing, collections }: Props) {
   const isNew = id === 'yeni'
+  const router = useRouter()
 
   const [name, setName]           = useState(existing?.name ?? '')
   const [description, setDesc]    = useState(existing?.description ?? '')
   const [category, setCategory]   = useState(existing?.category ?? '')
+  const [collectionId, setCollId] = useState(existing?.collectionId ?? '')
   const [material, setMaterial]   = useState(existing?.material ?? '')
   const [careInstr, setCare]      = useState(existing?.careInstructions ?? '')
   const [modelMeas, setModel]     = useState(existing?.modelMeasurements ?? '')
@@ -48,17 +52,17 @@ export default function UrunForm({ id, existing, collections }: Props) {
       : [{ size: '', color: '', colorHex: '#1A1A1A', price: 0, compareAtPrice: undefined, stock: 0, images: [] }]
   )
 
-  // Görsel state — tüm varyantlara ait benzersiz görseller tek havuzda yönetilir
   const allExistingImages = [...new Set(existing?.variants.flatMap(v => v.images) ?? [])]
-  const [images, setImages]         = useState<string[]>(allExistingImages)
-  const [uploading, setUploading]   = useState(false)
+  const [images, setImages]           = useState<string[]>(allExistingImages)
+  const [uploading, setUploading]     = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [dragOver, setDragOver]     = useState(false)
+  const [dragOver, setDragOver]       = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved]   = useState(false)
+  const [saving, setSaving]     = useState(false)
+  const [saved, setSaved]       = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   // ─── Görsel yükleme ───────────────────────────────────────────────────────
 
@@ -70,14 +74,12 @@ export default function UrunForm({ id, existing, collections }: Props) {
     setUploadError(null)
 
     try {
-      // Tüm dosyaları tek istekte gönder (çoklu yükleme)
       const fd = new FormData()
       for (const file of list) fd.append('files', file)
 
       const res  = await fetch('/api/upload', { method: 'POST', body: fd })
       const text = await res.text()
 
-      // Boş yanıt kontrolü
       if (!text) throw new Error('Sunucu boş yanıt döndürdü. Lütfen tekrar deneyin.')
 
       let data: { url?: string; results?: { url: string }[]; error?: string }
@@ -89,7 +91,6 @@ export default function UrunForm({ id, existing, collections }: Props) {
 
       if (!res.ok) throw new Error(data.error ?? `Sunucu hatası (${res.status})`)
 
-      // Tek dosya → { url } | Çoklu → { results: [{ url }] }
       const urls = data.results
         ? data.results.map(r => r.url)
         : data.url
@@ -132,12 +133,41 @@ export default function UrunForm({ id, existing, collections }: Props) {
   // ─── Kaydet ───────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
+    if (!name.trim()) { setSaveError('Ürün adı zorunludur.'); return }
+
     setSaving(true)
-    // TODO: server action ile DB'ye kaydet
-    await new Promise(r => setTimeout(r, 400))
+    setSaveError(null)
+    setSaved(false)
+
+    const result = await saveProduct(id, {
+      name:              name.trim(),
+      description:       description.trim(),
+      category,
+      collectionId,
+      material:          material.trim(),
+      careInstructions:  careInstr.trim(),
+      modelMeasurements: modelMeas.trim(),
+      isNew:             isNew_,
+      isFeatured,
+      seoTitle:          seoTitle.trim(),
+      seoDescription:    seoDesc.trim(),
+      images,
+      variants,
+    })
+
     setSaving(false)
+
+    if (!result.ok) {
+      setSaveError(result.error)
+      return
+    }
+
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setTimeout(() => setSaved(false), 3000)
+
+    if (isNew) {
+      router.push('/admin/urunler')
+    }
   }
 
   return (
@@ -172,10 +202,18 @@ export default function UrunForm({ id, existing, collections }: Props) {
           disabled={saving}
           className={`flex items-center gap-2 btn-primary text-xs ${saved ? 'bg-green-700 border-green-700' : ''}`}
         >
-          <Save size={14} />
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
           {saving ? 'Kaydediliyor...' : saved ? 'Kaydedildi!' : 'Kaydet'}
         </button>
       </div>
+
+      {/* Kaydetme hatası */}
+      {saveError && (
+        <div className="flex items-start gap-2 px-4 py-3 bg-scarlet/5 border border-scarlet/30">
+          <AlertCircle size={15} className="text-scarlet mt-0.5 flex-shrink-0" />
+          <p className="text-sm font-light text-scarlet">{saveError}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ana bilgiler */}
@@ -209,7 +247,7 @@ export default function UrunForm({ id, existing, collections }: Props) {
                 </select>
               </FormField>
               <FormField label="Koleksiyon">
-                <select className={inputCls}>
+                <select value={collectionId} onChange={e => setCollId(e.target.value)} className={inputCls}>
                   <option value="">Seçin</option>
                   {collections.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -430,7 +468,7 @@ export default function UrunForm({ id, existing, collections }: Props) {
               disabled={saving}
               className={`btn-primary w-full text-xs flex items-center justify-center gap-2 ${saved ? 'bg-green-700 border-green-700' : ''}`}
             >
-              <Save size={13} />
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
               {saving ? 'Kaydediliyor...' : saved ? 'Kaydedildi!' : 'Yayınla'}
             </button>
             {!isNew && (

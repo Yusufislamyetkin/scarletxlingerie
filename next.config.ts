@@ -17,7 +17,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://www.google-analytics.com",
+      "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://www.google-analytics.com https://*.public.blob.vercel-storage.com",
       "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://graph.facebook.com https://www.googletagmanager.com",
       "frame-src 'self' https://www.googletagmanager.com",
       "object-src 'none'",
@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
     ],
     formats:     ['image/avif', 'image/webp'],
     deviceSizes: [390, 640, 750, 828, 1080, 1200, 1920, 2560],
